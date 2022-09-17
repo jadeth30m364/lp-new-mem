@@ -1,0 +1,81 @@
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import torch.utils as utils
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+
+train = pd.read_csv('/kaggle/input/digit-recognizer/train.csv')
+train = np.array(train)
+print(train.shape)
+
+# init X, y from training data
+X = train[:, 1:]
+y = train[:, 0]
+
+# display images
+for i in range(5):
+    plt.imshow(X[i].reshape(28, 28))
+    plt.show()
+# convert to pytorch tensor from numpy
+X_tensor = torch.from_numpy(X)
+X_tensor = X_tensor.float()
+y_tensor = torch.from_numpy(y)
+
+# split data into training/validation
+training_X = X_tensor[:33600]
+training_y = y_tensor[:33600]
+
+validation_X = X_tensor[:8400]
+validation_y = y_tensor[:8400]
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.layer1 = nn.Linear(784, 50, True)
+        self.layer2 = nn.Linear(50, 20, True)
+        self.layer3 = nn.Linear(20, 10, True)
+        self.activation = nn.ReLU()
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.activation(x)
+        x = self.layer2(x)
+        x = self.activation(x)
+        x = self.layer3(x)
+        return x
+    
+my_nn = Net()
+result = my_nn(training_X)
+# print(result.shape)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(my_nn.parameters())
+
+epochs = 1000
+training_losses = []
+validation_losses = []
+
+for i in tqdm(range(epochs)):
+    my_nn.zero_grad()
+    loss = criterion(my_nn(training_X), training_y)
+    loss.backward()
+    optimizer.step()
+    training_losses.append(loss.item())
+    with torch.no_grad():
+        my_nn.zero_grad()
+        loss = criterion(my_nn(validation_X), validation_y)
+        validation_losses.append(loss.item())
+    
+
+# print(criterion(result, training_y))
+x_axis = []
+for i in range(epochs):
+    x_axis.append(i)
+plt.plot(x_axis, training_losses)
+plt.plot(x_axis, validation_losses)
+
+        
+        
+
